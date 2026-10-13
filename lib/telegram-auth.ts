@@ -106,11 +106,12 @@ export function issueSessionCookie(response: NextResponse, telegramId: string): 
   const payload = Buffer.from(JSON.stringify({ telegramId, expiresAt } satisfies SessionPayload))
     .toString("base64url");
   const signature = signSessionPayload(payload);
+  const secure = process.env.NODE_ENV === "production";
 
   response.cookies.set(SESSION_COOKIE, `${payload}.${signature}`, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    secure,
+    sameSite: secure ? "none" : "lax",
     path: "/",
     maxAge: SESSION_TTL_SECONDS,
   });
