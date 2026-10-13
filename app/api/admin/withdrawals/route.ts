@@ -66,9 +66,12 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "Thông tin yêu cầu rút tiền không hợp lệ." }, { status: 400 });
     }
 
+    const withdrawalId = body.id;
+    const requestedStatus = body.status;
+
     const updated = await prisma.$transaction(async (transaction) => {
       const withdrawal = await transaction.withdrawal.findUnique({
-        where: { id: body.id },
+        where: { id: withdrawalId },
         include: { ledgerEntry: true },
       });
       if (!withdrawal || withdrawal.status !== "PENDING") {
@@ -86,11 +89,11 @@ export async function PATCH(request: Request) {
 
       const changed = await transaction.withdrawal.updateMany({
         where: { id: withdrawal.id, status: "PENDING" },
-        data: { status: body.status, reviewedBy: actorId, reviewedAt: new Date() },
+        data: { status: requestedStatus, reviewedBy: actorId, reviewedAt: new Date() },
       });
       if (changed.count !== 1) throw new Error("WITHDRAWAL_NOT_PENDING");
 
-      if (body.status === "REJECTED") {
+      if (requestedStatus === "REJECTED") {
         const user = await transaction.user.update({
           where: { id: withdrawal.userId },
           data: { balance: { increment: withdrawal.amount } },
@@ -110,12 +113,12 @@ export async function PATCH(request: Request) {
       await transaction.auditLog.create({
         data: {
           actorId,
-          action: body.status === "APPROVED" ? "WITHDRAWAL_APPROVED" : "WITHDRAWAL_REJECTED",
+          action: requestedStatus === "APPROVED" ? "WITHDRAWAL_APPROVED" : "WITHDRAWAL_REJECTED",
           subjectId: withdrawal.id,
           metadata: { amount: withdrawal.amount.toFixed(0) },
         },
       });
-      return { id: withdrawal.id, status: body.status };
+      return { id: withdrawal.id, status: requestedStatus };
     });
 
     return NextResponse.json({ withdrawal: updated }, { headers: { "Cache-Control": "no-store" } });
