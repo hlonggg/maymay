@@ -71,10 +71,14 @@ export default function AdminTasks() {
         body: JSON.stringify(payload),
       });
       const result: { task?: AdminTask; error?: string } = await response.json();
-      if (!response.ok || !result.task) {
+      if (!response.ok) {
         throw new Error(result.error ?? "Không thể lưu nhiệm vụ.");
       }
-      setTasks((current) => [result.task, ...current]);
+      if (!result.task) {
+        throw new Error("Máy chủ không trả về nhiệm vụ vừa tạo.");
+      }
+      const createdTask = result.task;
+      setTasks((current) => [createdTask, ...current]);
       form.reset();
       setSuccess("Đã lưu nhiệm vụ vào PostgreSQL. Nhiệm vụ đang tạm dừng.");
     } catch (saveError) {
