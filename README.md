@@ -1,65 +1,44 @@
 # Maymay Telegram Mini App
 
-TypeScript starter for the Maymay Telegram Mini App, built with Next.js App Router and Prisma.
+Next.js App Router, TypeScript, Prisma, and PostgreSQL.
 
-## Requirements
+## Railway deployment
 
-- Node.js 20.9 or later
-- npm
-- PostgreSQL
+1. Deploy the `main` branch from GitHub in Railway and add a PostgreSQL service to the same project.
+2. In the app service variables, set `DATABASE_URL` using Railway's reference picker for the PostgreSQL service's `DATABASE_URL`.
+3. Set the following variables:
+   - `TELEGRAM_BOT_TOKEN`: from BotFather. Keep it server-side and do not share or commit it.
+   - `AUTH_SESSION_SECRET`: random value with at least 32 characters.
+   - `ADMIN_TELEGRAM_IDS`: comma-separated Telegram numeric IDs allowed to administer the app.
+   - `NEXT_PUBLIC_TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY`: Cloudflare Turnstile keys.
+   - `TURNSTILE_ALLOWED_HOSTNAMES`: optional comma-separated Railway/custom hostnames.
+4. `railway.json` configures Prisma migrations as the pre-deploy command, runs the Next.js build/start commands, and uses `/api/health` as the health check.
+5. Configure the bot's Mini App URL and allowed domain in BotFather to match the Railway domain. Open the app from Telegram; direct browser access intentionally does not authenticate.
+6. Check `/api/health`; it reports PostgreSQL connectivity.
 
 ## Local development
 
-1. Install dependencies:
+Install Node.js 20.9 or later and npm. Run `npm install`, copy `.env.example` to `.env`, set PostgreSQL and Telegram variables, then run:
 
-   ```powershell
-   npm install
-   ```
+```powershell
+npm run db:generate
+npm run db:migrate
+npm run dev
+```
 
-2. Copy `.env.example` to `.env` and set `DATABASE_URL`.
+Open the app from a Telegram test Mini App URL so it provides a signed `initData` payload.
 
-3. Generate the Prisma client and apply the initial database migration:
+## Current implementation status
 
-   ```powershell
-   npm run db:generate
-   npm run db:migrate
-   ```
+- Telegram `initData` is checked server-side using the bot token.
+- Users are created or updated in PostgreSQL and authenticated with a signed, HttpOnly session cookie.
+- The authenticated `/api/me` endpoint returns the current user's real balance, ledger entries, and active database tasks.
+- `/api/health` performs a PostgreSQL query; it returns HTTP 503 if the database is unavailable.
+- Admin navigation is shown only to Telegram IDs listed in `ADMIN_TELEGRAM_IDS`. Authorized admins can create and list tasks in PostgreSQL; new tasks remain `PAUSED`.
+- Cloudflare Turnstile verification is implemented at `/api/captcha/verify`, but it is not wired to a reward flow.
 
-4. Start the development server:
+This is not yet a complete rewards application. Link-provider adapters, attempt creation, completion callbacks, transaction-safe reward crediting, withdrawal requests/reviews, leaderboard/check-in APIs, and admin write APIs still need implementation. The UI intentionally does not simulate those operations or grant rewards.
 
-   ```powershell
-   npm run dev
-   ```
+## Environment variables
 
-Open `http://localhost:3000`. The health endpoint is available at `/api/health`.
-
-## Project structure
-
-- `app/`: Next.js pages, shared styling, and API routes
-- `prisma/schema.prisma`: initial PostgreSQL data model
-- `.env.example`: environment variable names; do not put real secrets in this file
-
-## UI preview
-
-The home page currently includes responsive screens for the dashboard, tasks and reward verification, wallet/withdrawal, leaderboard, daily check-in, account profile, and the admin feature menu. The admin menu opens separate demo sections for task management, auto-review/captcha settings, blocklist, withdrawal review, and system settings.
-
-Navigation and sample interactions work locally. Cloudflare Turnstile is verified by a server endpoint; rewards, slider, withdrawals, admin controls, and account details are preview-only and do not persist or call a production backend.
-
-### Cloudflare Turnstile on Railway
-
-1. Create a Turnstile widget in the Cloudflare dashboard for the app's Railway domain (and custom domain, if applicable). Use the production site key and secret key, not Cloudflare's test keys.
-2. In Railway, add `NEXT_PUBLIC_TURNSTILE_SITE_KEY` with the widget site key and `TURNSTILE_SECRET_KEY` with the widget secret. The secret is server-only; never use a `NEXT_PUBLIC_` prefix for it.
-3. Optionally set `TURNSTILE_ALLOWED_HOSTNAMES` to a comma-separated allowlist, for example `your-app.up.railway.app,app.example.com`.
-4. Redeploy so Next.js includes the public site key in the browser bundle and the server receives the secret.
-
-The task verification screen renders the real Turnstile widget. Its one-time token is posted to `/api/captcha/verify`, where the server calls Cloudflare Siteverify and checks the expected `task_claim` action and, when configured, the response hostname. The task reward is still demo-only: passing captcha does not award a real balance because task completion and the reward ledger have not yet been implemented server-side.
-
-## Security status
-
-This is a starter scaffold, not a production-ready rewards system. Telegram `initData` verification, authorization, rate limits, shortener adapters, task completion, balance/ledger transactions, and withdrawal review still need server-side implementations and tests.
-
-Keep bot, provider, and hashing secrets in server-only environment variables. Do not commit secret values or expose them through `NEXT_PUBLIC_*`.
-
-## GitHub
-
-This project belongs in the clone at `https://github.com/hlonggg/maymay`. Run Git commands from the repository root after opening this folder in VS Code.
+See `.env.example` for the complete list. Never commit real secrets or expose server-side secrets through `NEXT_PUBLIC_*`.

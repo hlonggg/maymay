@@ -37,6 +37,8 @@ model User {
   id            String         @id @default(cuid())
   telegramId    String         @unique
   username      String?
+  firstName     String?
+  lastName      String?
   phoneHash     String?
   balance       Decimal        @default(0) @db.Decimal(18, 2)
   blockedAt     DateTime?

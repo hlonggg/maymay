@@ -370,6 +370,24 @@ h1 { margin: 0; font-size: clamp(26px,3vw,34px); font-weight: 650; letter-spacin
 .toast span { color: #b7a3ff; }
 @keyframes toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
+.auth-page { background: radial-gradient(ellipse at 50% 0, rgb(139 124 255 / 13%), transparent 55%), var(--background); }
+.auth-card { display: grid; justify-items: start; gap: 4px; }
+.auth-card .brand-mark { margin-bottom: 18px; }
+.auth-help { margin: 0; color: #a8b0c0; font-size: 12px; line-height: 1.6; }
+.empty-state { display: grid; min-height: 210px; justify-items: center; align-content: center; text-align: center; }
+.empty-state > span { color: #a993ff; font-size: 25px; }
+.empty-state h2 { margin: 13px 0 4px; font-size: 15px; }
+.empty-state p, .empty-copy { max-width: 420px; color: #89919e; font-size: 10px; line-height: 1.6; }
+.empty-inline { display: flex; align-items: center; gap: 12px; margin-top: 12px; padding: 11px 14px; }
+.empty-inline > span { color: #bba8ff; }
+.empty-inline p { margin: 0; color: #a1a7b3; font-size: 10px; }
+.real-task-editor h2 { margin: 0 0 15px; font-size: 13px; }
+.real-task-editor textarea { width: 100%; min-height: 72px; resize: vertical; padding: 10px; border: 1px solid #2c323e; border-radius: 7px; background: #0f131a; color: var(--text); font-size: 10px; }
+.real-task-list { margin-top: 14px; }
+.admin-form-message { margin: 12px 0 0; font-size: 10px; }
+.admin-form-message.error { color: #ec959a; }
+.admin-form-message.success { color: #71d5a4; }
+
 @media (min-width: 1500px) { .content { padding-top: 48px; } }
 @media (max-width: 1100px) {
   .sidebar { width: 208px; }
