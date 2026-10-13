@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { hasSameOrigin } from "@/lib/request-origin";
 import { isAdminTelegramId, readSessionTelegramId } from "@/lib/telegram-auth";
 
 export const runtime = "nodejs";
@@ -58,8 +59,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Dữ liệu nhiệm vụ quá lớn." }, { status: 413 });
   }
 
-  const origin = request.headers.get("origin");
-  if (!origin || origin !== new URL(request.url).origin) {
+  if (!hasSameOrigin(request)) {
     return NextResponse.json({ error: "Yêu cầu không hợp lệ." }, { status: 403 });
   }
 
