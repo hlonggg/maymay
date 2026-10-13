@@ -60,6 +60,7 @@ export default function AdminTasks() {
       description: formData.get("description"),
       destinationUrl: formData.get("destinationUrl"),
       provider: formData.get("provider"),
+      providerApiKey: formData.get("providerApiKey"),
       reward: formData.get("reward"),
       minDurationSec: formData.get("minDurationSec"),
     };
@@ -91,7 +92,7 @@ export default function AdminTasks() {
   async function updateTaskStatus(task: AdminTask) {
     const status = task.status === "ACTIVE" ? "PAUSED" : "ACTIVE";
     if (status === "ACTIVE" && !window.confirm(
-      "Chỉ kích hoạt nếu URL provider nhận callback_url và chuyển người dùng về đúng URL đó khi hoàn tất. Kích hoạt nhiệm vụ?",
+      "Chỉ kích hoạt nếu API key Link4m hợp lệ và Link4m chuyển người dùng về URL callback sau khi hoàn thành. Kích hoạt nhiệm vụ?",
     )) return;
 
     setError("");
@@ -118,18 +119,19 @@ export default function AdminTasks() {
 
   return <>
     <div className="page-heading">
-      <div><p className="eyebrow">QUẢN TRỊ · DỮ LIỆU THẬT</p><h1>Quản lý nhiệm vụ</h1><p className="heading-description">Mỗi phiên được lưu trên PostgreSQL; provider cần nhận tham số callback_url để quay lại trang xác nhận trên trình duyệt.</p></div>
+      <div><p className="eyebrow">QUẢN TRỊ · DỮ LIỆU THẬT</p><h1>Quản lý nhiệm vụ</h1><p className="heading-description">Link4m tạo link riêng cho từng phiên; người dùng tự mở link rồi được chuyển về trang xác nhận.</p></div>
     </div>
-    <div className="admin-warning"><span>i</span><p>Nhiệm vụ mới luôn ở trạng thái <b>PAUSED</b>. Chỉ kích hoạt nếu URL provider hỗ trợ tham số <b>callback_url</b> và chuyển trình duyệt người dùng tới URL này sau khi hoàn tất.</p></div>
+    <div className="admin-warning"><span>i</span><p>Nhiệm vụ mới luôn ở trạng thái <b>PAUSED</b>. API key Link4m được mã hóa khi lưu và chỉ sử dụng ở máy chủ; hãy thu hồi key nếu đã bị lộ.</p></div>
     <section className="panel task-editor real-task-editor">
       <h2>Tạo nhiệm vụ</h2>
       <form className="editor-grid" onSubmit={createTask}>
         <label>Tên nhiệm vụ<input name="title" required minLength={3} maxLength={100} placeholder="Ví dụ: Trải nghiệm ứng dụng" /></label>
-        <label>Nhà cung cấp<input name="provider" required minLength={2} maxLength={40} pattern="[a-zA-Z0-9_-]+" placeholder="Ví dụ: link4m" /></label>
-        <label className="wide-field">URL provider (HTTPS, nhận callback_url)<input name="destinationUrl" required type="url" placeholder="https://provider.example/create-link" /></label>
+        <label>Nhà cung cấp<select name="provider" defaultValue="link4m" required><option value="link4m">Link4m</option></select></label>
+        <label className="wide-field">API key Link4m<input name="providerApiKey" type="password" required minLength={8} maxLength={512} autoComplete="new-password" placeholder="Dán API key Link4m mới tại đây" /></label>
         <label>Mức thưởng (VND)<input name="reward" required type="number" min={1} max={1000000} step={1} placeholder="1500" /></label>
         <label>Thời gian tối thiểu (giây)<input name="minDurationSec" required type="number" min={0} max={86400} step={1} defaultValue={30} /></label>
         <label className="wide-field">Mô tả<textarea name="description" maxLength={500} placeholder="Mô tả ngắn cho người dùng" /></label>
+        <input type="hidden" name="destinationUrl" value="https://link4m.co/api-shorten/v2" />
         <div className="wide-field"><button className="primary-button" type="submit" disabled={saving}>{saving ? "Đang lưu…" : "Lưu nhiệm vụ"}</button></div>
       </form>
       {error && <p className="admin-form-message error" role="alert">{error}</p>}

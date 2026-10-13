@@ -20,6 +20,7 @@ export default function TaskCallback({ token }: { token: string }) {
   const [task, setTask] = useState<CallbackInfo | null>(null);
   const [remaining, setRemaining] = useState(0);
   const [captchaToken, setCaptchaToken] = useState("");
+  const [sliderValue, setSliderValue] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [invalid, setInvalid] = useState(false);
@@ -76,7 +77,12 @@ export default function TaskCallback({ token }: { token: string }) {
       const response = await fetch("/api/tasks/callback", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode: "claim", token, captchaToken }),
+        body: JSON.stringify({
+          mode: "claim",
+          token,
+          captchaToken,
+          sliderCompleted: sliderValue === 100,
+        }),
         cache: "no-store",
       });
       const result: CallbackResponse = await response.json();
@@ -126,8 +132,19 @@ export default function TaskCallback({ token }: { token: string }) {
       onError={onCaptchaError}
       onExpired={onCaptchaExpired}
     />}
+    {task && <label className={`slider-demo ${sliderValue === 100 ? "complete" : ""}`}>
+      <span className="slider-hint">{sliderValue === 100 ? "Đã xác nhận" : "Kéo thanh trượt sang phải để xác nhận"}</span>
+      <input
+        aria-label="Kéo thanh trượt sang phải để xác nhận"
+        type="range"
+        min="0"
+        max="100"
+        value={sliderValue}
+        onChange={(event) => setSliderValue(Number(event.target.value))}
+      />
+    </label>}
     {error && <p className="admin-form-message error" role="alert">{error}</p>}
-    {task && <button className="primary-button callback-submit" type="button" disabled={!captchaToken || busy || remaining > 0} onClick={() => void claim()}>
+    {task && <button className="primary-button callback-submit" type="button" disabled={!captchaToken || sliderValue !== 100 || busy || remaining > 0} onClick={() => void claim()}>
       {busy ? "Đang xác minh…" : remaining > 0 ? `Đợi ${remaining} giây` : "Xác nhận & nhận thưởng"}
     </button>}
     <p className="callback-footnote">Token được ràng buộc với IP khi bắt đầu và hết hạn sau 30 phút.</p>

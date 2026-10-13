@@ -53,7 +53,7 @@ export async function GET(request: Request) {
           startedAt: true,
           expiresAt: true,
           goIp: true,
-          task: { select: { status: true } },
+          task: { select: { status: true, provider: true } },
         },
       }),
       prisma.appSetting.findUnique({
@@ -67,7 +67,9 @@ export async function GET(request: Request) {
     const now = new Date();
     if (
       !attempt ||
-      !allowedDomains.includes(refererHost) ||
+      !(allowedDomains.includes(refererHost) || (
+        attempt?.task.provider.toLowerCase() === "link4m" && refererHost === "link4m.com"
+      )) ||
       attempt.status !== "STARTED" ||
       attempt.expiresAt <= now ||
       attempt.startedAt > now ||
@@ -173,6 +175,9 @@ export async function POST(request: Request) {
       body.captchaToken.length > 2048
     ) {
       return NextResponse.json({ error: "Vui lòng hoàn thành captcha." }, { status: 400 });
+    }
+    if (!("sliderCompleted" in body) || body.sliderCompleted !== true) {
+      return NextResponse.json({ error: "Vui lòng kéo thanh trượt xác nhận." }, { status: 400 });
     }
     if (minimumWaitSeconds > 0) {
       return NextResponse.json({

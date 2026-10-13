@@ -126,6 +126,14 @@ h1 { margin: 0; font-size: clamp(26px,3vw,34px); font-weight: 650; letter-spacin
 .task-card-action { display: grid; justify-items: end; gap: 8px; }
 .task-card-action > b { color: #b5a3ff; font-size: 12px; }
 .small-primary { min-height: 28px; padding: 0 9px; font-size: 9px; }
+.short-link-overlay { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 18px; background: #07090dd9; }
+.short-link-dialog { position: relative; display: grid; width: min(100%,430px); gap: 12px; padding: 24px; border: 1px solid #39334d; border-radius: 14px; background: #141720; box-shadow: 0 24px 80px #0009; }
+.short-link-dialog h2 { margin: 0; font-size: 18px; }
+.short-link-dialog p:not(.eyebrow) { margin: 0; color: #a8b0c0; font-size: 11px; line-height: 1.6; }
+.short-link-dialog label { color: #d5d7df; font-size: 10px; }
+.short-link-dialog input { width: 100%; height: 40px; padding: 0 10px; border: 1px solid #343b49; border-radius: 7px; background: #0c1017; color: #d8ceff; font-size: 11px; }
+.short-link-dialog .primary-button { justify-content: center; min-height: 40px; }
+.short-link-close { position: absolute; top: 11px; right: 13px; color: #9da3af; font-size: 22px; }
 .done-button { min-height: 28px; padding: 0 9px; border: 1px solid #274a3d; border-radius: 7px; background: #15241e; color: #75d8a8; font-size: 9px; }
 .lower-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 15px; }
 .panel { min-width: 0; padding: 18px; border: 1px solid var(--stroke); border-radius: 11px; background: #12161e; }
@@ -185,7 +193,7 @@ h1 { margin: 0; font-size: clamp(26px,3vw,34px); font-weight: 650; letter-spacin
 .wallet-grid { display: grid; grid-template-columns: 1.1fr .9fr; gap: 15px; margin-top: 15px; align-items: start; }
 .withdraw-form { display: grid; gap: 11px; margin-top: 19px; }
 .withdraw-form label, .editor-grid label, .block-add-form label { display: grid; gap: 7px; color: #d5d7df; font-size: 10px; font-weight: 550; }
-.withdraw-form input, .editor-grid input, .block-add-form input { width: 100%; min-width: 0; height: 38px; padding: 0 11px; border: 1px solid #2c323e; border-radius: 7px; background: #0f131a; color: var(--text); font-size: 10px; }
+.withdraw-form input, .editor-grid input, .editor-grid select, .block-add-form input { width: 100%; min-width: 0; height: 38px; padding: 0 11px; border: 1px solid #2c323e; border-radius: 7px; background: #0f131a; color: var(--text); font-size: 10px; }
 .withdraw-form input::placeholder, .editor-grid input::placeholder, .block-add-form input::placeholder { color: #697181; }
 .input-with-suffix { position: relative; }
 .input-with-suffix input { padding-right: 48px; }
@@ -385,6 +393,7 @@ h1 { margin: 0; font-size: clamp(26px,3vw,34px); font-weight: 650; letter-spacin
 .slider-demo input::-webkit-slider-thumb { width: 31px; height: 28px; appearance: none; border: 1px solid #6e5db0; border-radius: 5px; background: linear-gradient(120deg,#9b83ff,#7058d1); cursor: grab; }
 .slider-demo input::-moz-range-thumb { width: 31px; height: 28px; border: 1px solid #6e5db0; border-radius: 5px; background: linear-gradient(120deg,#9b83ff,#7058d1); cursor: grab; }
 .slider-demo.disabled input { cursor: not-allowed; opacity: .55; }
+.slider-demo.complete input { border-color: #397552; }
 .verify-actions { display: grid; gap: 8px; margin-top: 22px; }
 .verify-actions small { color: #727a88; font-size: 8px; text-align: center; }
 .verify-receipt { padding: 20px; }

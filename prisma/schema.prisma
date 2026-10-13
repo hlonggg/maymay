@@ -57,6 +57,7 @@ model Task {
   description    String?
   destinationUrl String
   provider       String
+  providerApiKeyEncrypted String?
   reward         Decimal     @db.Decimal(18, 2)
   status         TaskStatus  @default(ACTIVE)
   minDurationSec Int         @default(0)

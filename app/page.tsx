@@ -235,6 +235,7 @@ function Tasks({ tasks }: { tasks: AppTask[] }) {
 function DatabaseTaskCard({ task, index }: { task: AppTask; index: number }) {
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState("");
+  const [shortenedUrl, setShortenedUrl] = useState("");
   const colors = ["violet", "blue", "orange"];
   const icons = ["↗", "◉", "✦"];
   async function startTask() {
@@ -250,13 +251,26 @@ function DatabaseTaskCard({ task, index }: { task: AppTask; index: number }) {
       if (!response.ok || !result.redirectUrl) {
         throw new Error(result.error ?? "Không thể bắt đầu nhiệm vụ.");
       }
-      window.location.assign(result.redirectUrl);
+      setShortenedUrl(result.redirectUrl);
     } catch (startError) {
       setError(startError instanceof Error ? startError.message : "Không thể bắt đầu nhiệm vụ.");
       setStarting(false);
     }
   }
-  return <article className="task-card"><div className={`task-symbol ${colors[index % colors.length]}`}>{icons[index % icons.length]}</div><div className="task-info"><div className="task-card-title">{task.title}</div><p>{task.description ?? `Nhà cung cấp: ${task.provider}`}</p><div className="task-meta"><span>◷ {task.minDurationSec} giây tối thiểu</span><span>⌁ {task.provider}</span></div>{error && <small className="task-start-error" role="alert">{error}</small>}</div><div className="task-card-action"><b>+{formatVnd(task.reward)}</b><button className="small-primary" disabled={starting} onClick={() => void startTask()}>{starting ? "Đang mở…" : "Bắt đầu"}</button></div></article>;
+  return <>
+    <article className="task-card"><div className={`task-symbol ${colors[index % colors.length]}`}>{icons[index % colors.length]}</div><div className="task-info"><div className="task-card-title">{task.title}</div><p>{task.description ?? `Nhà cung cấp: ${task.provider}`}</p><div className="task-meta"><span>◷ {task.minDurationSec} giây tối thiểu</span><span>⌁ {task.provider}</span></div>{error && <small className="task-start-error" role="alert">{error}</small>}</div><div className="task-card-action"><b>+{formatVnd(task.reward)}</b><button className="small-primary" disabled={starting} onClick={() => void startTask()}>{starting ? "Đang tạo link…" : "Bắt đầu"}</button></div></article>
+    {shortenedUrl && <div className="short-link-overlay" role="presentation" onClick={() => setShortenedUrl("")}>
+      <section className="short-link-dialog" role="dialog" aria-modal="true" aria-labelledby={`short-link-title-${task.id}`} onClick={(event) => event.stopPropagation()}>
+        <button className="short-link-close" type="button" aria-label="Đóng" onClick={() => setShortenedUrl("")}>×</button>
+        <p className="eyebrow">LINK4M · NHIỆM VỤ</p>
+        <h2 id={`short-link-title-${task.id}`}>Link nhiệm vụ đã sẵn sàng</h2>
+        <p>Sao chép hoặc nhấn “Làm ngay” để mở link rút gọn. Sau khi hoàn thành, bạn sẽ được chuyển về trang xác nhận.</p>
+        <label htmlFor={`short-link-url-${task.id}`}>Link rút gọn</label>
+        <input id={`short-link-url-${task.id}`} readOnly value={shortenedUrl} onFocus={(event) => event.currentTarget.select()} />
+        <button className="primary-button" type="button" onClick={() => window.location.assign(shortenedUrl)}>Làm ngay</button>
+      </section>
+    </div>}
+  </>;
 }
 
 function Wallet({ balance, transactions }: { balance: string; transactions: TransactionRecord[] }) {

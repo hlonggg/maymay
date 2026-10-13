@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAdminTelegramId } from "@/lib/admin-api";
 import { hasSameOrigin } from "@/lib/request-origin";
+import { encryptProviderCredential } from "@/lib/provider-credentials";
 
 export const runtime = "nodejs";
 
@@ -80,11 +81,14 @@ export async function POST(request: Request) {
   if ("destinationUrl" in body) data.destinationUrl = body.destinationUrl;
   if ("reward" in body) data.reward = body.reward;
   if ("minDurationSec" in body) data.minDurationSec = body.minDurationSec;
+  if ("providerApiKey" in body) data.providerApiKey = body.providerApiKey;
   const title = typeof data.title === "string" ? data.title.trim() : "";
   const description = typeof data.description === "string" ? data.description.trim() : "";
   const provider = typeof data.provider === "string" ? data.provider.trim() : "";
   const destinationUrl =
     typeof data.destinationUrl === "string" ? data.destinationUrl.trim() : "";
+  const providerApiKey =
+    typeof data.providerApiKey === "string" ? data.providerApiKey.trim() : "";
   const reward = typeof data.reward === "string" || typeof data.reward === "number"
     ? Number(data.reward)
     : Number.NaN;
@@ -101,8 +105,12 @@ export async function POST(request: Request) {
     title.length < 3 ||
     title.length > 100 ||
     description.length > 500 ||
-    !/^[a-zA-Z0-9_-]{2,40}$/.test(provider) ||
+    provider.toLowerCase() !== "link4m" ||
+    providerApiKey.length < 8 ||
+    providerApiKey.length > 512 ||
     destination.protocol !== "https:" ||
+    destination.hostname !== "link4m.co" ||
+    destination.pathname !== "/api-shorten/v2" ||
     destination.username !== "" ||
     destination.password !== "" ||
     !Number.isSafeInteger(reward) ||
@@ -123,6 +131,7 @@ export async function POST(request: Request) {
           description: description || null,
           destinationUrl: destination.toString(),
           provider,
+          providerApiKeyEncrypted: encryptProviderCredential(providerApiKey),
           reward,
           minDurationSec,
           status: "PAUSED",

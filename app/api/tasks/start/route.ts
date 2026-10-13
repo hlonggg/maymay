@@ -5,10 +5,18 @@ import { hasSameOrigin } from "@/lib/request-origin";
 import { getClientIp } from "@/lib/request-ip";
 import { prisma } from "@/lib/prisma";
 import { readSessionTelegramId } from "@/lib/telegram-auth";
+import { decryptProviderCredential } from "@/lib/provider-credentials";
 
 export const runtime = "nodejs";
 
 const ATTEMPT_TTL_MS = 30 * 60 * 1000;
+
+async function rejectAttempt(id: string) {
+  await prisma.attempt.updateMany({
+    where: { id, status: "STARTED" },
+    data: { status: "REJECTED" },
+  });
+}
 
 export async function POST(request: Request) {
   if (Number(request.headers.get("content-length") ?? "0") > 4_000) {
@@ -29,6 +37,7 @@ export async function POST(request: Request) {
   }
 
   let body: unknown;
+  let attemptId: string | null = null;
   try {
     body = await request.json();
   } catch {
@@ -62,7 +71,13 @@ export async function POST(request: Request) {
 
     const task = await prisma.task.findUnique({
       where: { id: taskId },
-      select: { id: true, status: true, destinationUrl: true },
+      select: {
+        id: true,
+        status: true,
+        destinationUrl: true,
+        provider: true,
+        providerApiKeyEncrypted: true,
+      },
     });
     if (!task || task.status !== "ACTIVE") {
       return NextResponse.json({ error: "Nhiệm vụ hiện không khả dụng." }, { status: 404 });
@@ -84,10 +99,7 @@ export async function POST(request: Request) {
     const expiresAt = new Date(now.getTime() + ATTEMPT_TTL_MS);
     const callbackUrl = new URL("/api/tasks/callback", miniAppUrl);
     callbackUrl.searchParams.set("token", token);
-    const providerUrl = new URL(task.destinationUrl);
-    providerUrl.searchParams.set("callback_url", callbackUrl.toString());
-
-    await prisma.attempt.create({
+    const attempt = await prisma.attempt.create({
       data: {
         tokenHash,
         userId: user.id,
@@ -97,14 +109,92 @@ export async function POST(request: Request) {
         expiresAt,
         goIp: clientIp,
       },
+      select: { id: true },
     });
+    attemptId = attempt.id;
+
+    let redirectUrl: string;
+    if (task.provider.toLowerCase() === "link4m") {
+      if (!task.providerApiKeyEncrypted) {
+        await rejectAttempt(attempt.id);
+        return NextResponse.json({ error: "Nhiệm vụ chưa được cấu hình API key Link4m." }, { status: 503 });
+      }
+      const apiKey = decryptProviderCredential(task.providerApiKeyEncrypted);
+      const shortenUrl = new URL(task.destinationUrl);
+      shortenUrl.searchParams.set("api", apiKey);
+      shortenUrl.searchParams.set("url", callbackUrl.toString());
+      let apiResponse: Response;
+      try {
+        apiResponse = await fetch(shortenUrl, {
+          method: "GET",
+          cache: "no-store",
+          signal: AbortSignal.timeout(10_000),
+          headers: { Accept: "application/json" },
+        });
+      } catch {
+        await rejectAttempt(attempt.id);
+        console.error("Link4m shorten API request failed or timed out.");
+        return NextResponse.json({ error: "Không thể kết nối Link4m để tạo link. Vui lòng thử lại." }, { status: 502 });
+      }
+      if (!apiResponse.ok) {
+        await rejectAttempt(attempt.id);
+        console.error("Link4m shorten API returned HTTP", apiResponse.status);
+        return NextResponse.json({ error: "Link4m hiện không thể tạo link. Vui lòng thử lại sau." }, { status: 502 });
+      }
+      let apiResult: unknown;
+      try {
+        apiResult = await apiResponse.json();
+      } catch {
+        await rejectAttempt(attempt.id);
+        return NextResponse.json({ error: "Link4m không trả về dữ liệu JSON hợp lệ." }, { status: 502 });
+      }
+      if (
+        typeof apiResult !== "object" ||
+        apiResult === null ||
+        !("status" in apiResult) ||
+        apiResult.status !== "success" ||
+        !("shortenedUrl" in apiResult) ||
+        typeof apiResult.shortenedUrl !== "string"
+      ) {
+        await rejectAttempt(attempt.id);
+        return NextResponse.json({ error: "Link4m không trả về link rút gọn hợp lệ." }, { status: 502 });
+      }
+      let shortenedUrl: URL;
+      try {
+        shortenedUrl = new URL(apiResult.shortenedUrl);
+      } catch {
+        await rejectAttempt(attempt.id);
+        return NextResponse.json({ error: "Link4m không trả về link rút gọn hợp lệ." }, { status: 502 });
+      }
+      if (
+        shortenedUrl.protocol !== "https:" ||
+        shortenedUrl.hostname !== "link4m.com" ||
+        shortenedUrl.username !== "" ||
+        shortenedUrl.password !== ""
+      ) {
+        await rejectAttempt(attempt.id);
+        return NextResponse.json({ error: "Link4m trả về domain link rút gọn không hợp lệ." }, { status: 502 });
+      }
+      redirectUrl = shortenedUrl.toString();
+    } else {
+      const providerUrl = new URL(task.destinationUrl);
+      providerUrl.searchParams.set("callback_url", callbackUrl.toString());
+      redirectUrl = providerUrl.toString();
+    }
 
     return NextResponse.json({
-      redirectUrl: providerUrl.toString(),
+      redirectUrl,
       expiresAt: expiresAt.toISOString(),
     }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
-    console.error("Could not start task attempt.", error);
+    if (attemptId) {
+      try {
+        await rejectAttempt(attemptId);
+      } catch {
+        console.error("Could not reject the failed task attempt.");
+      }
+    }
+    console.error("Could not start task attempt.", error instanceof Error ? error.name : "Unknown error");
     return NextResponse.json({ error: "Không thể bắt đầu nhiệm vụ." }, { status: 503 });
   }
 }
