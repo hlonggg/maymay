@@ -215,7 +215,7 @@ function Dashboard({ user, tasks, setPage }: { user: AppUser; tasks: AppTask[]; 
     {tasks.length > 0 ? <div className="task-preview-grid">{tasks.slice(0, 2).map((task, index) => <DatabaseTaskCard key={task.id} task={task} index={index} />)}</div> : <section className="panel empty-inline"><span>▤</span><p>Chưa có nhiệm vụ đang hoạt động trong cơ sở dữ liệu.</p></section>}
     <div className="lower-grid">
       <section className="panel"><div className="panel-title"><div><h3>Giao dịch gần đây</h3><p>Đọc từ ledger PostgreSQL</p></div></div>{user.transactions.length ? user.transactions.slice(0, 4).map((transaction) => <Transaction key={transaction.id} transaction={transaction} />) : <p className="empty-copy">Chưa có giao dịch nào được ghi nhận.</p>}</section>
-      <section className="panel"><div className="panel-title"><div><h3>Nhiệm vụ & xác minh</h3><p>Trạng thái tích hợp</p></div></div><p className="empty-copy">Tài khoản và danh sách nhiệm vụ đã nối database. Luồng link rút gọn, callback và ghi thưởng cần triển khai phía máy chủ.</p><button className="text-button rank-all" onClick={() => setPage("tasks")}>Mở danh sách nhiệm vụ <span>→</span></button></section>
+      <section className="panel"><div className="panel-title"><div><h3>Nhiệm vụ & xác minh</h3><p>Trạng thái tích hợp</p></div></div><p className="empty-copy">Mỗi phiên nhiệm vụ gắn với IP lúc bắt đầu, có thời hạn 30 phút và chỉ ghi thưởng sau khi xác minh captcha trên trang callback.</p><button className="text-button rank-all" onClick={() => setPage("tasks")}>Mở danh sách nhiệm vụ <span>→</span></button></section>
     </div>
   </>;
 }
@@ -228,14 +228,35 @@ function Tasks({ tasks }: { tasks: AppTask[] }) {
   return <>
     <PageHeading eyebrow="DỮ LIỆU TỪ POSTGRESQL" title="Nhiệm vụ" description="Danh sách này được tải từ các nhiệm vụ đang hoạt động trong database." action={<span className="task-available"><i /> {tasks.length} NHIỆM VỤ</span>} />
     {tasks.length ? <div className="task-list">{tasks.map((task, index) => <DatabaseTaskCard key={task.id} task={task} index={index} />)}</div> : <section className="panel empty-state"><span>▤</span><h2>Chưa có nhiệm vụ</h2><p>Khi quản trị viên tạo nhiệm vụ trong PostgreSQL, chúng sẽ xuất hiện ở đây.</p></section>}
-    <div className="info-banner"><span>i</span><div><b>Chưa thể bắt đầu nhiệm vụ</b><p>Đang hoàn thiện adapter nhà cung cấp link và callback xác minh. Chưa có phần thưởng nào được ghi nhận.</p></div></div>
+    <div className="info-banner"><span>i</span><div><b>Phiên nhiệm vụ có thời hạn</b><p>Link provider sẽ quay lại trang callback trên trình duyệt. Phiên được ràng buộc với IP lúc bắt đầu và hết hạn sau 30 phút.</p></div></div>
   </>;
 }
 
 function DatabaseTaskCard({ task, index }: { task: AppTask; index: number }) {
+  const [starting, setStarting] = useState(false);
+  const [error, setError] = useState("");
   const colors = ["violet", "blue", "orange"];
   const icons = ["↗", "◉", "✦"];
-  return <article className="task-card"><div className={`task-symbol ${colors[index % colors.length]}`}>{icons[index % icons.length]}</div><div className="task-info"><div className="task-card-title">{task.title}</div><p>{task.description ?? `Nhà cung cấp: ${task.provider}`}</p><div className="task-meta"><span>◷ {task.minDurationSec} giây tối thiểu</span><span>⌁ {task.provider}</span></div></div><div className="task-card-action"><b>+{formatVnd(task.reward)}</b><button className="small-primary" disabled title="Cần tích hợp nhà cung cấp link và callback">Chưa mở</button></div></article>;
+  async function startTask() {
+    setStarting(true);
+    setError("");
+    try {
+      const response = await fetch("/api/tasks/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ taskId: task.id }),
+      });
+      const result: { error?: string; redirectUrl?: string } = await response.json();
+      if (!response.ok || !result.redirectUrl) {
+        throw new Error(result.error ?? "Không thể bắt đầu nhiệm vụ.");
+      }
+      window.location.assign(result.redirectUrl);
+    } catch (startError) {
+      setError(startError instanceof Error ? startError.message : "Không thể bắt đầu nhiệm vụ.");
+      setStarting(false);
+    }
+  }
+  return <article className="task-card"><div className={`task-symbol ${colors[index % colors.length]}`}>{icons[index % icons.length]}</div><div className="task-info"><div className="task-card-title">{task.title}</div><p>{task.description ?? `Nhà cung cấp: ${task.provider}`}</p><div className="task-meta"><span>◷ {task.minDurationSec} giây tối thiểu</span><span>⌁ {task.provider}</span></div>{error && <small className="task-start-error" role="alert">{error}</small>}</div><div className="task-card-action"><b>+{formatVnd(task.reward)}</b><button className="small-primary" disabled={starting} onClick={() => void startTask()}>{starting ? "Đang mở…" : "Bắt đầu"}</button></div></article>;
 }
 
 function Wallet({ balance, transactions }: { balance: string; transactions: TransactionRecord[] }) {

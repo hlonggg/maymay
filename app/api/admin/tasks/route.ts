@@ -163,3 +163,57 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Không thể lưu nhiệm vụ vào PostgreSQL." }, { status: 503 });
   }
 }
+
+export async function PATCH(request: Request) {
+  if (Number(request.headers.get("content-length") ?? "0") > 8_000) {
+    return NextResponse.json({ error: "Dữ liệu nhiệm vụ quá lớn." }, { status: 413 });
+  }
+  if (!hasSameOrigin(request)) {
+    return NextResponse.json({ error: "Yêu cầu không hợp lệ." }, { status: 403 });
+  }
+
+  try {
+    const actorId = await getAdminTelegramId(request);
+    if (!actorId) {
+      return NextResponse.json({ error: "Không có quyền quản trị." }, { status: 403 });
+    }
+
+    const body: unknown = await request.json();
+    if (
+      typeof body !== "object" ||
+      body === null ||
+      !("id" in body) ||
+      typeof body.id !== "string" ||
+      body.id.length < 1 ||
+      body.id.length > 128 ||
+      !("status" in body) ||
+      (body.status !== "ACTIVE" && body.status !== "PAUSED" && body.status !== "ARCHIVED")
+    ) {
+      return NextResponse.json({ error: "Thông tin trạng thái nhiệm vụ không hợp lệ." }, { status: 400 });
+    }
+
+    const taskId = body.id;
+    const status = body.status;
+    const updated = await prisma.$transaction(async (transaction) => {
+      const task = await transaction.task.update({
+        where: { id: taskId },
+        data: { status },
+        select: { id: true, status: true },
+      });
+      await transaction.auditLog.create({
+        data: {
+          actorId,
+          action: `TASK_${status}`,
+          subjectId: task.id,
+          metadata: { status },
+        },
+      });
+      return task;
+    });
+
+    return NextResponse.json({ task: updated }, { headers: { "Cache-Control": "no-store" } });
+  } catch (error) {
+    console.error("Could not update admin task status.", error);
+    return NextResponse.json({ error: "Không thể cập nhật trạng thái nhiệm vụ." }, { status: 503 });
+  }
+}

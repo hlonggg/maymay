@@ -333,7 +333,53 @@ function ActivityTable({ rows, showDetails = false }: { rows: ActivityRow[]; sho
 
 function Settings() {
   const { data, loading, error } = useAdminData<OverviewData>("/api/admin/overview");
-  if (loading) return <p className="empty-copy">Đang kiểm tra cấu hình…</p>;
+  const [callbackRefererDomain, setCallbackRefererDomain] = useState("");
+  const [settingLoading, setSettingLoading] = useState(true);
+  const [settingError, setSettingError] = useState("");
+  const [settingSuccess, setSettingSuccess] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadSetting() {
+      try {
+        const response = await fetch("/api/admin/settings", { cache: "no-store" });
+        const result = await readJson<{ callbackRefererDomain: string }>(response);
+        if (!cancelled) setCallbackRefererDomain(result.callbackRefererDomain);
+      } catch (loadError) {
+        if (!cancelled) setSettingError(loadError instanceof Error ? loadError.message : "Không thể tải domain callback.");
+      } finally {
+        if (!cancelled) setSettingLoading(false);
+      }
+    }
+    void loadSetting();
+    return () => { cancelled = true; };
+  }, []);
+
+  async function saveCallbackDomains(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSaving(true);
+    setSettingError("");
+    setSettingSuccess("");
+    try {
+      const response = await fetch("/api/admin/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ callbackRefererDomain }),
+      });
+      const result = await readJson<{ callbackRefererDomain: string }>(response);
+      setCallbackRefererDomain(result.callbackRefererDomain);
+      setSettingSuccess(result.callbackRefererDomain
+        ? "Đã lưu các domain nguồn callback."
+        : "Đã xóa danh sách domain; callback sẽ bị từ chối cho tới khi cấu hình lại.");
+    } catch (saveError) {
+      setSettingError(saveError instanceof Error ? saveError.message : "Không thể lưu domain callback.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (loading || settingLoading) return <p className="empty-copy">Đang kiểm tra cấu hình…</p>;
   if (error || !data) return <p className="admin-form-message error" role="alert">{error || "Không có dữ liệu."}</p>;
   const labels: Record<string, string> = {
     telegramBot: "Telegram Bot Token",
@@ -342,11 +388,31 @@ function Settings() {
     miniAppUrl: "Mini App HTTPS URL",
     turnstile: "Cloudflare Turnstile",
   };
-  return <section className="panel admin-data-panel">
-    <div className="panel-title"><div><h3>Trạng thái cấu hình</h3><p>Chỉ hiển thị trạng thái có/thiếu; giá trị bí mật không được tiết lộ.</p></div></div>
-    {Object.entries(data.configuration).map(([key, configured]) => <div className="setting-row" key={key}>
-      <div><b>{labels[key] ?? key}</b><small>Quản lý giá trị trong Railway Variables.</small></div>
-      <span className={configured ? "active-state" : "pending-state"}>{configured ? "ĐÃ CẤU HÌNH" : "CHƯA CẤU HÌNH"}</span>
-    </div>)}
-  </section>;
+  return <>
+    <section className="panel admin-data-panel">
+      <div className="panel-title"><div><h3>Domain nguồn callback</h3><p>Chỉ nhận lượt quay về có HTTP Referer đúng hostname đã khai báo.</p></div></div>
+      <form className="callback-domain-form" onSubmit={saveCallbackDomains}>
+        <label htmlFor="callback-referer-domain">Hostname các domain cuối chuyển người dùng về (phân tách bằng dấu chấm phẩy)</label>
+        <textarea
+          id="callback-referer-domain"
+          value={callbackRefererDomain}
+          onChange={(event) => setCallbackRefererDomain(event.target.value)}
+          maxLength={2000}
+          rows={3}
+          placeholder="link4m.com; gtraffic.io; layma.net"
+        />
+        <small>Nhập hostname, không ghi https:// hay đường dẫn. Callback bị từ chối nếu thiếu hoặc không khớp Referer.</small>
+        <button className="primary-button" type="submit" disabled={saving}>{saving ? "Đang lưu…" : "Lưu domain"}</button>
+      </form>
+      {settingError && <p className="admin-form-message error" role="alert">{settingError}</p>}
+      {settingSuccess && <p className="admin-form-message success" role="status">{settingSuccess}</p>}
+    </section>
+    <section className="panel admin-data-panel">
+      <div className="panel-title"><div><h3>Trạng thái cấu hình</h3><p>Chỉ hiển thị trạng thái có/thiếu; giá trị bí mật không được tiết lộ.</p></div></div>
+      {Object.entries(data.configuration).map(([key, configured]) => <div className="setting-row" key={key}>
+        <div><b>{labels[key] ?? key}</b><small>Quản lý giá trị trong Railway Variables.</small></div>
+        <span className={configured ? "active-state" : "pending-state"}>{configured ? "ĐÃ CẤU HÌNH" : "CHƯA CẤU HÌNH"}</span>
+      </div>)}
+    </section>
+  </>;
 }

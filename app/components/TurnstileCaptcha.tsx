@@ -26,6 +26,7 @@ declare global {
 }
 
 type Props = {
+  action?: string;
   onToken: (token: string) => void;
   onError: (message: string) => void;
   onExpired: () => void;
@@ -33,7 +34,12 @@ type Props = {
 
 const scriptId = "cloudflare-turnstile-script";
 
-export default function TurnstileCaptcha({ onToken, onError, onExpired }: Props) {
+export default function TurnstileCaptcha({
+  action = "task_claim",
+  onToken,
+  onError,
+  onExpired,
+}: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<TurnstileWidgetId | null>(null);
   const [loadError, setLoadError] = useState("");
@@ -58,7 +64,7 @@ export default function TurnstileCaptcha({ onToken, onError, onExpired }: Props)
       try {
         widgetIdRef.current = window.turnstile.render(containerRef.current, {
           sitekey: siteKey,
-          action: "task_claim",
+          action,
           theme: "dark",
           callback: onToken,
           "expired-callback": onExpired,
@@ -100,7 +106,7 @@ export default function TurnstileCaptcha({ onToken, onError, onExpired }: Props)
         widgetIdRef.current = null;
       }
     };
-  }, [siteKey, onToken, onError, onExpired]);
+  }, [siteKey, action, onToken, onError, onExpired]);
 
   return (
     <div className="turnstile-wrap">

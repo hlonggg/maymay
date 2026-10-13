@@ -38,9 +38,12 @@ Open the app from a Telegram test Mini App URL so it provides a signed `initData
 - The authenticated `/api/me` endpoint returns the current user's real balance, ledger entries, and active database tasks.
 - `/api/health` performs a PostgreSQL query; it returns HTTP 503 if the database is unavailable.
 - Admin navigation is shown only to Telegram IDs listed in `ADMIN_TELEGRAM_IDS`. The admin panel reads dashboard statistics, users, withdrawals, and audit activity from PostgreSQL; authorized admins can block/unblock accounts, create/list tasks, and review withdrawals. New tasks remain `PAUSED`; withdrawal approval records that an external payout was made, while rejection refunds only when a matching reserve ledger entry exists.
-- Cloudflare Turnstile verification is implemented at `/api/captcha/verify`, but it is not wired to a reward flow.
+- Starting an active task creates a random 30-minute attempt token, stores its hash and starting IP, and adds a `callback_url` parameter to the configured provider URL. The provider must support this parameter and redirect the user's browser to it after task completion.
+- Admins configure allowed callback referrer hostnames in the admin **Cấu hình** tab, separated by semicolons (for example `link4m.com; gtraffic.io; layma.net`). The provider return must include a matching HTTPS `Referer`; Railway records the return IP before redirecting to the public browser callback page.
+- The public browser route `/callback/<token>` does not require a Telegram session. Direct visits to this page do not record a provider return and fail validation. It rejects invalid, expired, reused, inactive-task, or IP-mismatched attempts with **Invalid token!**. Valid callbacks require Cloudflare Turnstile action `task_callback`; reward and ledger updates happen once in a database transaction.
+- Cloudflare Turnstile verification is shared through `lib/turnstile.ts`; `/api/captcha/verify` remains available for the existing `task_claim` action.
 
-This is not yet a complete rewards application. Link-provider adapters, attempt creation, completion callbacks, transaction-safe task reward crediting, user withdrawal request creation, and leaderboard/check-in APIs still need implementation. The UI intentionally does not simulate those operations or grant task rewards.
+This is not yet a complete rewards application. A provider-specific adapter/API-key integration, user withdrawal request creation, and leaderboard/check-in APIs still need implementation. The callback flow relies on each configured provider accepting the `callback_url` query parameter and preserving a matching HTTPS `Referer`; test both behaviors with the selected provider before activating tasks. `Referer` is a browser source signal, not cryptographic proof from the provider.
 
 ## Environment variables
 
