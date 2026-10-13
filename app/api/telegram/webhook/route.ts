@@ -71,7 +71,7 @@ export async function POST(request: Request) {
 
   const webAppUrl = getMiniAppUrl();
   if (!webAppUrl) {
-    console.error("Telegram /start could not build a Mini App URL from RAILWAY_PUBLIC_DOMAIN.");
+    console.error("Telegram /start requires a valid HTTPS MINI_APP_URL.");
     return Response.json({ error: "Chưa cấu hình domain Mini App." }, { status: 503 });
   }
 

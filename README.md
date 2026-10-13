@@ -8,14 +8,15 @@ Next.js App Router, TypeScript, Prisma, and PostgreSQL.
 2. In the app service variables, set `DATABASE_URL` using Railway's reference picker for the PostgreSQL service's `DATABASE_URL`.
 3. Set the following variables:
    - `TELEGRAM_BOT_TOKEN`: from BotFather. Keep it server-side and do not share or commit it.
+   - `MINI_APP_URL`: the full public HTTPS URL, e.g. `https://your-service.up.railway.app`.
    - `AUTH_SESSION_SECRET`: random value with at least 32 characters.
    - `ADMIN_TELEGRAM_IDS`: comma-separated Telegram numeric IDs allowed to administer the app.
    - `NEXT_PUBLIC_TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY`: Cloudflare Turnstile keys.
    - `TURNSTILE_ALLOWED_HOSTNAMES`: optional comma-separated Railway/custom hostnames.
 4. `railway.json` configures Prisma migrations as the pre-deploy command, runs the Next.js build/start commands, and uses `/api/health` as the health check.
-5. Railway provides `RAILWAY_PUBLIC_DOMAIN` automatically when the service has a public domain; do not add it manually.
-6. Once the app is deployed, run `npm run telegram:webhook:set` in the Railway service Console. This registers the Telegram webhook and makes `/start` reply with an inline **Mở Mini App** button pointing to the Railway HTTPS URL. The webhook secret is derived from `TELEGRAM_BOT_TOKEN`; no extra secret variable is needed. The button is available in a private chat with the bot. Open the app from Telegram; direct browser access intentionally does not authenticate.
-6. Check `/api/health`; it reports PostgreSQL connectivity.
+5. Set `MINI_APP_URL` to the public HTTPS URL of the deployed app. This is used both to register the webhook URL and as the Mini App button target.
+6. Once the app is deployed and the variable is set, run `npm run telegram:webhook:set` in the Railway service Console. This registers the Telegram webhook and makes `/start` reply with an inline **Mở Mini App** button. The webhook secret is derived from `TELEGRAM_BOT_TOKEN`; no extra secret variable is needed. The button is available in a private chat with the bot. Open the app from Telegram; direct browser access intentionally does not authenticate.
+7. Check `/api/health`; it reports PostgreSQL connectivity.
 
 ## Local development
 

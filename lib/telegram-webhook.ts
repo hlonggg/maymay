@@ -18,12 +18,18 @@ export function isValidTelegramWebhookSecret(
 }
 
 export function getMiniAppUrl(): string | null {
-  const domain = process.env.RAILWAY_PUBLIC_DOMAIN?.trim();
-  if (!domain || domain.includes("/") || domain.includes("@")) return null;
+  const configuredUrl = process.env.MINI_APP_URL?.trim();
+  if (!configuredUrl) return null;
 
   try {
-    const url = new URL(`https://${domain}`);
-    if (url.protocol !== "https:" || url.hostname !== domain.toLowerCase()) return null;
+    const url = new URL(configuredUrl);
+    if (
+      url.protocol !== "https:" ||
+      url.username ||
+      url.password ||
+      url.search ||
+      url.hash
+    ) return null;
     return url.toString().replace(/\/$/, "");
   } catch {
     return null;
