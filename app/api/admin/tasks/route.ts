@@ -1,25 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getAdminTelegramId } from "@/lib/admin-api";
 import { hasSameOrigin } from "@/lib/request-origin";
-import { isAdminTelegramId, readSessionTelegramId } from "@/lib/telegram-auth";
 
 export const runtime = "nodejs";
 
-async function getAdminId(request: Request): Promise<string | null> {
-  const telegramId = readSessionTelegramId(request);
-  if (!telegramId || !isAdminTelegramId(telegramId)) return null;
-
-  const user = await prisma.user.findUnique({
-    where: { telegramId },
-    select: { blockedAt: true },
-  });
-  if (!user || user.blockedAt) return null;
-  return telegramId;
-}
-
 export async function GET(request: Request) {
   try {
-    const telegramId = await getAdminId(request);
+    const telegramId = await getAdminTelegramId(request);
     if (!telegramId) {
       return NextResponse.json({ error: "Không có quyền quản trị." }, { status: 403 });
     }
@@ -65,7 +53,7 @@ export async function POST(request: Request) {
 
   let telegramId: string | null;
   try {
-    telegramId = await getAdminId(request);
+    telegramId = await getAdminTelegramId(request);
   } catch (error) {
     console.error("Could not verify admin session for task creation.", error);
     return NextResponse.json({ error: "Không thể xác minh quyền quản trị." }, { status: 503 });

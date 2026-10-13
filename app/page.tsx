@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import AdminTasks from "./components/AdminTasks";
+import AdminPanel from "./components/AdminPanel";
 
 type PageId = "dashboard" | "tasks" | "wallet" | "leaderboard" | "checkin" | "profile" | "admin";
 type AuthState = "loading" | "ready" | "error";
@@ -155,7 +155,7 @@ export default function Home() {
           {page === "leaderboard" && <ComingSoon title="Bảng xếp hạng" description="Bảng xếp hạng sẽ hiển thị sau khi có dữ liệu giao dịch tổng hợp thật." />}
           {page === "checkin" && <ComingSoon title="Điểm danh" description="Tính năng điểm danh chưa được nối API, nên hiện chưa thể ghi nhận thưởng." />}
           {page === "profile" && <Profile user={user} />}
-          {page === "admin" && user.isAdmin && <AdminTasks />}
+          {page === "admin" && user.isAdmin && <AdminPanel />}
         </div>
         <footer className="page-footer"><span>© 2026 Maymay Mini App</span><span><i /> Telegram đã xác thực · PostgreSQL</span></footer>
       </section>

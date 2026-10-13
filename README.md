@@ -37,10 +37,10 @@ Open the app from a Telegram test Mini App URL so it provides a signed `initData
 - Users are created or updated in PostgreSQL and authenticated with a signed, HttpOnly session cookie.
 - The authenticated `/api/me` endpoint returns the current user's real balance, ledger entries, and active database tasks.
 - `/api/health` performs a PostgreSQL query; it returns HTTP 503 if the database is unavailable.
-- Admin navigation is shown only to Telegram IDs listed in `ADMIN_TELEGRAM_IDS`. Authorized admins can create and list tasks in PostgreSQL; new tasks remain `PAUSED`.
+- Admin navigation is shown only to Telegram IDs listed in `ADMIN_TELEGRAM_IDS`. The admin panel reads dashboard statistics, users, withdrawals, and audit activity from PostgreSQL; authorized admins can block/unblock accounts, create/list tasks, and review withdrawals. New tasks remain `PAUSED`; withdrawal approval records that an external payout was made, while rejection refunds only when a matching reserve ledger entry exists.
 - Cloudflare Turnstile verification is implemented at `/api/captcha/verify`, but it is not wired to a reward flow.
 
-This is not yet a complete rewards application. Link-provider adapters, attempt creation, completion callbacks, transaction-safe reward crediting, withdrawal requests/reviews, leaderboard/check-in APIs, and admin write APIs still need implementation. The UI intentionally does not simulate those operations or grant rewards.
+This is not yet a complete rewards application. Link-provider adapters, attempt creation, completion callbacks, transaction-safe task reward crediting, user withdrawal request creation, and leaderboard/check-in APIs still need implementation. The UI intentionally does not simulate those operations or grant task rewards.
 
 ## Environment variables
 
