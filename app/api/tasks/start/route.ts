@@ -10,6 +10,7 @@ import { decryptProviderCredential } from "@/lib/provider-credentials";
 export const runtime = "nodejs";
 
 const ATTEMPT_TTL_MS = 30 * 60 * 1000;
+const LINK4M_SHORTENER_HOSTS = new Set(["link4m.co", "link4m.com", "link4m.org"]);
 
 async function rejectAttempt(id: string) {
   await prisma.attempt.updateMany({
@@ -168,7 +169,7 @@ export async function POST(request: Request) {
       }
       if (
         shortenedUrl.protocol !== "https:" ||
-        shortenedUrl.hostname !== "link4m.com" ||
+        !LINK4M_SHORTENER_HOSTS.has(shortenedUrl.hostname.toLowerCase()) ||
         shortenedUrl.username !== "" ||
         shortenedUrl.password !== ""
       ) {

@@ -9,6 +9,7 @@ import { getMiniAppUrl } from "@/lib/telegram-webhook";
 export const runtime = "nodejs";
 
 const TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
+const LINK4M_REFERER_HOSTS = new Set(["link4m.co", "link4m.com", "link4m.org"]);
 
 function invalidToken() {
   return NextResponse.json({ error: "Invalid token!" }, { status: 410 });
@@ -68,7 +69,8 @@ export async function GET(request: Request) {
     if (
       !attempt ||
       !(allowedDomains.includes(refererHost) || (
-        attempt?.task.provider.toLowerCase() === "link4m" && refererHost === "link4m.com"
+        attempt.task.provider.toLowerCase() === "link4m" &&
+        LINK4M_REFERER_HOSTS.has(refererHost)
       )) ||
       attempt.status !== "STARTED" ||
       attempt.expiresAt <= now ||

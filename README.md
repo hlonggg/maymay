@@ -44,7 +44,7 @@ Open the app from a Telegram test Mini App URL so it provides a signed `initData
 - Link4m tasks store their API token encrypted with AES-256-GCM using `AUTH_SESSION_SECRET`. Starting a task asks the Link4m API to shorten that attempt's unique callback URL; the user sees the generated link and explicitly chooses **Làm ngay**. Rotate any API token that has been exposed, then enter its replacement only in the admin task form.
 - Cloudflare Turnstile verification is shared through `lib/turnstile.ts`; `/api/captcha/verify` remains available for the existing `task_claim` action.
 
-This is not yet a complete rewards application. User withdrawal request creation and leaderboard/check-in APIs still need implementation. The callback flow relies on Link4m redirecting the browser to the supplied callback URL and preserving an HTTPS `Referer` from `link4m.com`; test this behavior before activating tasks. `Referer` is a browser source signal, not cryptographic proof from the provider.
+This is not yet a complete rewards application. User withdrawal request creation and leaderboard/check-in APIs still need implementation. The callback flow relies on Link4m redirecting the browser to the supplied callback URL and preserving an HTTPS `Referer` from `link4m.co`, `link4m.com`, or `link4m.org`; test this behavior before activating tasks. `Referer` is a browser source signal, not cryptographic proof from the provider.
 
 ## Environment variables
 
