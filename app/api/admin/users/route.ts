@@ -77,20 +77,23 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "Thông tin tài khoản không hợp lệ." }, { status: 400 });
     }
 
-    if (body.telegramId === actorId && body.blocked) {
+    const targetTelegramId = body.telegramId;
+    const blocked = body.blocked;
+
+    if (targetTelegramId === actorId && blocked) {
       return NextResponse.json({ error: "Không thể tự khóa tài khoản quản trị." }, { status: 400 });
     }
 
     const user = await prisma.$transaction(async (transaction) => {
       const updated = await transaction.user.update({
-        where: { telegramId: body.telegramId },
-        data: { blockedAt: body.blocked ? new Date() : null },
+        where: { telegramId: targetTelegramId },
+        data: { blockedAt: blocked ? new Date() : null },
         select: { telegramId: true, blockedAt: true },
       });
       await transaction.auditLog.create({
         data: {
           actorId,
-          action: body.blocked ? "USER_BLOCKED" : "USER_UNBLOCKED",
+          action: blocked ? "USER_BLOCKED" : "USER_UNBLOCKED",
           subjectId: updated.telegramId,
         },
       });
